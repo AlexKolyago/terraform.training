@@ -3,13 +3,14 @@ provider "aws" {
 }
 
 resource "aws_db_instance" "example" {
-  identifier_prefix = "terraform-alex-kolyago-db"
-  engine            = "mysql"
-  allocated_storage = 10
-  instance_class    = "db.t2.micro"
-  name              = "example_database"
-  username          = "admin"
-  password          = data.aws_secretsmanager_secret_version.db_password.secret_string
+  identifier_prefix   = "terraform-alex-kolyago-db"
+  engine              = "mysql"
+  allocated_storage   = 10
+  instance_class      = "db.t2.micro"
+  name                = var.db_name
+  username            = "admin"
+  password            = var.db_password
+  skip_final_snapshot = true
 }
 
 data "aws_secretsmanager_secret_version" "db_password" {
