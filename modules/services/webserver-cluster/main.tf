@@ -1,26 +1,35 @@
-/*
-terraform {
-  required_version = ">= 0.12, < 0.13"
-}
-*/
 resource "aws_launch_configuration" "example" {
-  image_id        = "ami-0c55b159cbfafe1f0"
+  image_id        = var.ami
   instance_type   = var.instance_type
   security_groups = [aws_security_group.instance.id]
+  
+  user_data = data.template_file.user_data.rendered
 
+  /* this part was for "if-else"
   user_data = (
-    length(data.template_file.user_data[*]) > 0
+    length(data.template_file.user_data[*]) > 0       
       ? data.template_file.user_data[0].rendered
       : data.template_file.user_data_new[0].rendered
   )
-
+  */
   # Required when using a launch configuration with an auto scaling group.
-  # https://www.terraform.io/docs/providers/aws/r/launch_configuration.html
   lifecycle {
     create_before_destroy = true
   }
 }
 
+data "template_file" "user_data" {
+  template = file("${path.module}/user-data.sh")
+
+  vars = {
+    server_port = var.server_port
+    db_address  = data.terraform_remote_state.db.outputs.address
+    db_port     = data.terraform_remote_state.db.outputs.port
+    server_text = var.server_text
+  }
+}
+
+/* this part was for "if-else"
 data "template_file" "user_data" {
   count = var.enable_new_user_data ? 0 : 1
 
@@ -42,8 +51,11 @@ data "template_file" "user_data_new" {
     "server_port" = var.server_port
   }
 }
-
+*/
 resource "aws_autoscaling_group" "example" {
+  # Create depend on the launch configuration's name, so each time it's replaced, this ASG is also replaced
+  name = "${var.cluster_name}-${aws_launch_configuration.example.name}"
+
   launch_configuration = aws_launch_configuration.example.name
   vpc_zone_identifier  = data.aws_subnet_ids.default.ids
   target_group_arns    = [aws_lb_target_group.asg.arn]
@@ -51,6 +63,14 @@ resource "aws_autoscaling_group" "example" {
 
   min_size = var.min_size
   max_size = var.max_size
+
+  # Wait for (var.min_size) to pass health checks before considering the ASG deployment complete
+  min_elb_capacity = var.min_size
+  
+  # When replacing this ASG, first -> create the replacement, then -> delete the original
+  lifecycle {
+    create_before_destroy = true
+  }
 
   tag {
     key                 = "Name"

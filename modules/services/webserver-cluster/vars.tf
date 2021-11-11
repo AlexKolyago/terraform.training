@@ -44,8 +44,21 @@ variable "enable_autoscaling" {
   description = "If set to true, enable auto scaling"
   type        = bool
 }
-
+/* this part was for "if-else"
 variable "enable_new_user_data" {
   description = "If set to true, use the new User Data script"
   type        = bool
+}
+*/
+# for 0 downtime deployment
+variable "ami" {
+  description = "The AMI to run in the cluster"
+  default     = "ami-03a71cec707bfc3d7"
+  type        = string
+}
+
+variable "server_text" {
+  description = "The text the web server should return"
+  default     = "Hi, world!"
+  type        = string
 }
