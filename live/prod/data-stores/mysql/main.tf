@@ -11,7 +11,14 @@ terraform {
     encrypt        = true
   }
 }
+module "mysql" {
+  source = "../../../modules/data-stores/mysql"
 
+  db_name     = var.db_name
+  db_username = var.db_username
+  db_password = var.db_password
+}
+/*
 resource "aws_db_instance" "example" {
   identifier_prefix   = "terraform-up-and-running"
   engine              = "mysql"
@@ -22,3 +29,4 @@ resource "aws_db_instance" "example" {
   password            = var.db_password
   skip_final_snapshot = true
 }
+*/
